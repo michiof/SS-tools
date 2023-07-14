@@ -133,11 +133,11 @@ def extract_inputfile():
 
                         # Start embeddings. If None (an embeddings error) is returned, back to menu.
                         print("\nStart embeddigns process for")
-                        counter = 0
+                        counter = 1
                         for row in reader:
                             
                             # for avoiding API rate limit, wait 60sec every 5000
-                            if counter % 5000 == 0 and counter != 0:
+                            if counter % 5000 == 0:
                                 print("Waiting...")
                                 time.sleep(60)
                             
@@ -183,7 +183,7 @@ def extract_inputfile():
 while True:
     print("\n\nOptions:")
     print("1: Start from the first step")
-    print("2: Resume upsert to VectorDB")
+    print("2: Resume importing to VectorDB")
     print("3: Quit")
     option = input("\nPlease choose an option: ")
 
