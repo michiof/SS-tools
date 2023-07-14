@@ -29,7 +29,7 @@ INDEX_NAME = input("Please enter the index name: ")
 CONFIG_FILE_PATH = 'config.json'
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
-pinecone.init(api_key=os.getenv("PINECONE_API_KEY2"), environment=os.getenv("PINECONE_ENVIRONMENT2"))
+pinecone.init(api_key=os.getenv("PINECONE_API_KEY"), environment=os.getenv("PINECONE_ENVIRONMENT"))
 index = pinecone.Index(INDEX_NAME)
 
 
