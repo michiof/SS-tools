@@ -40,6 +40,7 @@ def vectordb():
     dimension = 1536
 
     pinecone.init(api_key=pinecone_api_key, environment=pinecone_environment)
+    index = pinecone.Index(index_name)
 
     # Create index if not exists
     if index_name not in pinecone.list_indexes():
@@ -59,6 +60,8 @@ def vectordb():
         if confirmation.lower() != "yes":
             print("\nAborted.")
             return False
+        # Delete exsisting data in DB
+        index.delete(deleteAll='true')
 
     # Import from temp.json data
     try:
@@ -71,7 +74,6 @@ def vectordb():
     # Upsert Pinecone DB
     print("\nStart upsert...")
     try:
-        index = pinecone.Index(index_name)
         for i, record in enumerate(data):
             metadata = {key: record[key] for key in record if key != "embeddings"}
             vector = (
@@ -81,7 +83,7 @@ def vectordb():
             )
             try:
                 index.upsert([vector])
-                print(f"id:{i}")
+                print(f"id_{i}")
             except Exception as e:
                 print(f"Failed to upsert data at index {i}: {e}")
                 return False
@@ -116,7 +118,7 @@ def extract_inputfile():
                 print("\n== Please make sure that all column names are written in English. ==\n")
                 
                 # Select a column which should be embeddings
-                column_choice = input("Enter the column number you want to embed: ")
+                column_choice = input("Enter the column number you want to create embeddings: ")
                 try:
                     column_index = int(column_choice) - 1
                     
