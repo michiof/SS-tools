@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+
+# This script is for auto importing data from a CSV file with multiple columns into a vector database.
+
 import os
 import pandas as pd
 import openai
@@ -10,10 +13,10 @@ from dotenv import load_dotenv
 
 
 # Load the .env.local file
-load_dotenv('../.env.local')
+load_dotenv('.env.local')
 openai.api_key = os.environ.get("OPENAI_API_KEY")
-pinecone_api_key = os.environ.get("PINECONE_API_KEY2")
-pinecone_environment = os.environ.get("PINECONE_ENVIRONMENT2")
+pinecone_api_key = os.environ.get("PINECONE_API_KEY")
+pinecone_environment = os.environ.get("PINECONE_ENVIRONMENT")
 
 # Define the model
 model = "text-embedding-ada-002"
@@ -59,7 +62,7 @@ def vectordb():
 
     # Import from temp.json data
     try:
-        with open('temp.json', 'r', encoding='utf-8') as f:
+        with open('./data/temp.json', 'r', encoding='utf-8') as f:
             data = json.load(f)
     except FileNotFoundError:
         print(f"A temporary file does not exist. Please select option 1.")
