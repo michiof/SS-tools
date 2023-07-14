@@ -11,9 +11,8 @@
 
 ## to_vector.py
 csvファイル内の指定した1列を行ごとにembeddings化し、全列の情報をMeta dataとして、embeddingsと一緒にPineconeに登録するスクリプトです。
-GPTのQ&A botなどで取り出したいと思っている情報を列ごとにCSVで配置すると、Pineconeにその通りに登録されます。（先頭行はMeta dataの名前になります: (例) Title, Article, published date, URLを1行目に、2行目以降はデータ）
-エクセルファイルでQAで使いたい情報を編集後、csv(UTF-8)で保存すれば、そのままPineconeにベクトルデータとともに登録できます。
-embeddings化とMeta dataの登録のみをするスクリプトのため、QAの出力結果をテストしたいときはqa.pyを実行してください。データフォーマットを色々と変更して試したい時にご利用ください。
+例えば、Title, Article, published date, URLを1行目に、2行目以降はデータを配置し、スクリプト内でEmebeddings化する列を"Article"に指定すると、Pineconeには各行のArticleの内容に対するEmbeddingsベクトルデータと、その行に対応するMeta dataとして{"Title": "emebeddings化した行のTitle列のデータ", "Article": "Aricle列のデータ"...}が保存されます。
+（エクセルファイルでQAで使いたい情報を編集後、csv(UTF-8)で保存すれば、そのままPineconeにベクトルデータとともに登録できます。embeddings化とMeta dataの登録のみをするスクリプトのため、QAの出力結果をテストしたいときはqa.pyを実行してください。データフォーマットを色々と変更して試したい時にご利用ください。）
 
 まれにPineconeのIndex新規作成直後のupsertは失敗することがあります。その時はoption 2を選んで再開すれば、前回embeddings化したデータを使って、そのままPineconeに登録できます。(多少の料金の節約にはなると思います)
 
