@@ -32,7 +32,7 @@ def create_embeddings(row, model, column_index):
         return None
 
 # For saving Vector and meta data in online vectorDB(s)
-def vectordb():
+def vectordb(filename_json):
     # For Pinecone
     index_name = input("\nEnter the Pinecone Index name: ")
     dimension = 1536
@@ -63,7 +63,7 @@ def vectordb():
 
     # Import from temp.json data
     try:
-        with open('./data/temp.jsonl', 'r', encoding='utf-8') as f:
+        with open(filename_json, 'r', encoding='utf-8') as f:
             data = [json.loads(line) for line in f.readlines()]
     except FileNotFoundError:
         print(f"A temporary file does not exist. Please select option 1.")
@@ -185,7 +185,7 @@ def extract_inputfile():
                 print("Completed.")
             
             # To save vectorDB
-            vectordb()
+            vectordb(temp_file_name)
 
             return True
 
@@ -210,7 +210,8 @@ while True:
         if success:
             break
     elif option == '2':
-        success = vectordb()
+        temp_file_name = './data/temp.jsonl'
+        success = vectordb(temp_file_name)
         if success:
             break
     elif option == '3':
