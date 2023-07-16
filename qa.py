@@ -23,7 +23,7 @@ GPT_MODEL = "gpt-3.5-turbo"
 LIMIT = 4096
 
 # Ask user for the Pinecone index name
-INDEX_NAME = input("Please enter the index name: ")
+INDEX_NAME = input("Please enter the index name in your Pinecone: ")
 
 # Define the file path to config.json file
 CONFIG_FILE_PATH = 'config.json'
