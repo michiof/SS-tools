@@ -91,7 +91,7 @@ def vectordb(filename_json = './data/temp.jsonl'):
         with open(filename_json, 'r', encoding='utf-8') as f:
             data = [json.loads(line) for line in f.readlines()]
     except FileNotFoundError:
-        print(f"A temporary file does not exist. Please select option 1.")
+        print("A temporary file does not exist. Please select option 1.")
         return False
 
     # Upsert Pinecone DB
