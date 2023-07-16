@@ -63,7 +63,7 @@ def vectordb():
 
     # Import from temp.json data
     try:
-        with open('./data/temp2.jsonl', 'r', encoding='utf-8-sig') as f:
+        with open('./data/temp.jsonl', 'r', encoding='utf-8') as f:
             data = [json.loads(line) for line in f.readlines()]
     except FileNotFoundError:
         print(f"A temporary file does not exist. Please select option 1.")
@@ -144,13 +144,13 @@ def extract_inputfile():
                             return False
                         
                         # Create/Clear a temporaly json file, and record embedddings with metadata
-                        temp_file_name = './data/temp2.jsonl'
+                        temp_file_name = './data/temp.jsonl'
                         print(temp_file_name)
                         # Open the file in write mode to create it or clear it if it already exists
-                        with open(temp_file_name, 'w', encoding='utf-8-sig') as json_file:
+                        with open(temp_file_name, 'w', encoding='utf-8') as json_file:
                             pass
 
-                        with open(temp_file_name, 'a', encoding='utf-8-sig') as json_file:
+                        with open(temp_file_name, 'a', encoding='utf-8') as json_file:
                             print("\nStart embeddigns process for")
                             counter = 1
                             for row in reader:
