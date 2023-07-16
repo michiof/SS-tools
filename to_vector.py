@@ -31,8 +31,6 @@ def create_embeddings(row, model, column_index):
         print(f"Error when creating embeddings in {row}: {e}")
         return None
 
-
-
 # For saving Vector and meta data in online vectorDB(s)
 def vectordb():
     # For Pinecone
@@ -65,8 +63,8 @@ def vectordb():
 
     # Import from temp.json data
     try:
-        with open('./data/temp.json', 'r', encoding='utf-8') as f:
-            data = json.load(f)
+        with open('./data/temp2.jsonl', 'r', encoding='utf-8-sig') as f:
+            data = [json.loads(line) for line in f.readlines()]
     except FileNotFoundError:
         print(f"A temporary file does not exist. Please select option 1.")
         return False
@@ -88,9 +86,6 @@ def vectordb():
                 print(f"Failed to upsert data at index {i}: {e}")
                 return False
 
-        # If you need to check a sample in Pinecone
-        #print(fetch_response = index.fetch(ids=["id_0"]))
-
         print("Completed upsert to Pinecone database.\n\nExit\n")
         return True
     
@@ -99,15 +94,33 @@ def vectordb():
         return False
 
 
+## Flattens a nested json file.
+def flatten_json(any_json, delimiter='_'):
+    flat_json = {}
+
+    def flatten(x, name=''):
+        if type(x) is dict:
+            for a in x:
+                flatten(x[a], name + a + delimiter)
+        elif type(x) is list:
+            i = 0
+            for a in x:
+                flatten(a, name + str(i) + delimiter)
+                i += 1
+        else:
+            flat_json[name[:-1]] = x
+
+    flatten(any_json)
+    return flat_json
+
 
 # Import file -> select a column which should be embeddings -> embeddings -> save it in a temp. file -> vectorDB
 def extract_inputfile():
-    data = []
     filename = './data/' + input("\nEnter the filename: ")
 
     if filename.endswith('.csv'):
         try:
-            with open(filename, 'r', encoding='utf-8') as f:
+            with open(filename, 'r', encoding='utf-8-sig') as f:
                 reader = csv.reader(f)
                 headers = next(reader)
 
@@ -121,7 +134,6 @@ def extract_inputfile():
                 column_choice = input("Enter the column number you want to create embeddings: ")
                 try:
                     column_index = int(column_choice) - 1
-                    
                     if column_index >= 0 and column_index < len(headers):
                         selected_column = headers[column_index]
                         print(f"You selected column: {selected_column}")
@@ -130,28 +142,38 @@ def extract_inputfile():
                         if confirmation.lower() != "yes":
                             print("\nAborted.")
                             return False
+                        
+                        # Create/Clear a temporaly json file, and record embedddings with metadata
+                        temp_file_name = './data/temp2.jsonl'
+                        print(temp_file_name)
+                        # Open the file in write mode to create it or clear it if it already exists
+                        with open(temp_file_name, 'w', encoding='utf-8-sig') as json_file:
+                            pass
 
-                        # Start embeddings. If None (an embeddings error) is returned, back to menu.
-                        print("\nStart embeddigns process for")
-                        counter = 1
-                        for row in reader:
-                            
-                            # for avoiding API rate limit, wait 60sec every 5000
-                            if counter % 5000 == 0:
-                                print("Waiting...")
-                                time.sleep(60)
-                            
-                            embedding = create_embeddings(row, model, column_index)
-                            print(row[0])
-                            if embedding is None:
-                                print("Embedding creation failed.")
-                                return False
-                            
-                            row_dict = {headers[i]: row[i] for i in range(min(len(headers), len(row)))}
-                            row_dict["embeddings"] = embedding
-                            data.append(row_dict)
+                        with open(temp_file_name, 'a', encoding='utf-8-sig') as json_file:
+                            print("\nStart embeddigns process for")
+                            counter = 1
+                            for row in reader:
+                                
+                                # for avoiding API rate limit, wait 60sec every 5000
+                                if counter % 5000 == 0:
+                                    print("Waiting...")
+                                    time.sleep(60)
+                                
+                                # If None (an embeddings error) is returned, back to menu.
+                                embedding = create_embeddings(row, model, column_index)
+                                print(row[0])
+                                if embedding is None:
+                                    print("Embedding creation failed. Please try agin.")
+                                    return False
+                                
+                                row_dict = {headers[i]: row[i] for i in range(min(len(headers), len(row)))}
+                                row_dict["embeddings"] = embedding
+                                
+                                json.dump(row_dict, json_file, ensure_ascii=False)
+                                json_file.write("\n")
 
-                            counter += 1
+                                counter += 1
                     else:
                         print("\nError: Invalid column number.")
                         return False
@@ -159,10 +181,7 @@ def extract_inputfile():
                 except ValueError:
                     print("\nError: Invalid input. Please enter a valid column number.")
                     return False
-            
-            # Save temporaly json file
-            with open('./data/temp.json', 'w', encoding='utf-8') as json_file:
-                json.dump(data, json_file, ensure_ascii=False)
+                
                 print("Completed.")
             
             # To save vectorDB
@@ -177,7 +196,6 @@ def extract_inputfile():
     else:
         print("Please select a CSV file.")
         return False
-
 
 
 while True:
