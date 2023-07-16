@@ -18,18 +18,43 @@ openai.api_key = os.environ.get("OPENAI_API_KEY")
 pinecone_api_key = os.environ.get("PINECONE_API_KEY")
 pinecone_environment = os.environ.get("PINECONE_ENVIRONMENT")
 
-# Define the model
-model = "text-embedding-ada-002"
+# Define the embeddings model
+EMBEDDING_MODEL = "text-embedding-ada-002"
 
 
-# For creating embeddings
-def create_embeddings(row, model, column_index):
-    try:
-        embedding = openai.Embedding.create(input=row[column_index], model=model)["data"][0]["embedding"]
-        return embedding
-    except Exception as e:
-        print(f"Error when creating embeddings in {row}: {e}")
-        return None
+# For saving embeddings to a specified file.
+# All data will be inserted in the target file. Not clear all before writing.
+# clear_file: {True: Clears existing data and overwrites it, False: Appends new data after the existing data.}
+def record_embeddings(data, headers, embedding_column_index, clear_file, output_file_name = './data/temp.jsonl'):
+    if clear_file:
+        # Open the file in write mode to create it or clear it if it already exists
+        with open(output_file_name, 'w', encoding='utf-8') as json_file:
+            pass
+    with open(output_file_name, 'a', encoding='utf-8') as json_file:
+        print("\nStart embeddigns process for")
+        counter = 1
+        for row in data:
+            
+            # for avoiding API rate limit, wait 60sec every 5000
+            if counter % 5000 == 0:
+                print("Waiting...")
+                time.sleep(60)
+            
+            # If an embeddings error is returned, then back to menu.
+            try:
+                embedding = openai.Embedding.create(input=row[embedding_column_index], model=EMBEDDING_MODEL)["data"][0]["embedding"]
+            except Exception as e:
+                print(f"Error when creating embeddings in {row}: {e}\n\nEmbedding creation failed. Please try agin.")
+                return False
+            print(row[0])
+            row_dict = {headers[i]: row[i] for i in range(min(len(headers), len(row)))}
+            row_dict["embeddings"] = embedding
+            
+            json.dump(row_dict, json_file, ensure_ascii=False)
+            json_file.write("\n")
+
+            counter += 1
+
 
 # For saving Vector and meta data in online vectorDB(s)
 def vectordb(filename_json = './data/temp.jsonl'):
@@ -94,7 +119,7 @@ def vectordb(filename_json = './data/temp.jsonl'):
         return False
 
 
-## Flattens a nested json file.
+## Flattens a nested json file. (For future use)
 def flatten_json(any_json, delimiter='_'):
     flat_json = {}
 
@@ -114,7 +139,7 @@ def flatten_json(any_json, delimiter='_'):
     return flat_json
 
 
-# Import file -> select a column which should be embeddings -> embeddings -> save it in a temp. file -> vectorDB
+# Import file -> select a column which should be embeddings -> embeddings -> save it in a temp. file
 def extract_inputfile():
     filename = './data/' + input("\nEnter the filename: ")
 
@@ -142,38 +167,7 @@ def extract_inputfile():
                         if confirmation.lower() != "yes":
                             print("\nAborted.")
                             return False
-                        
-                        # Create/Clear a temporaly json file, and record embedddings with metadata
-                        temp_file_name = './data/temp.jsonl'
-                        print(temp_file_name)
-                        # Open the file in write mode to create it or clear it if it already exists
-                        with open(temp_file_name, 'w', encoding='utf-8') as json_file:
-                            pass
-
-                        with open(temp_file_name, 'a', encoding='utf-8') as json_file:
-                            print("\nStart embeddigns process for")
-                            counter = 1
-                            for row in reader:
-                                
-                                # for avoiding API rate limit, wait 60sec every 5000
-                                if counter % 5000 == 0:
-                                    print("Waiting...")
-                                    time.sleep(60)
-                                
-                                # If None (an embeddings error) is returned, back to menu.
-                                embedding = create_embeddings(row, model, column_index)
-                                print(row[0])
-                                if embedding is None:
-                                    print("Embedding creation failed. Please try agin.")
-                                    return False
-                                
-                                row_dict = {headers[i]: row[i] for i in range(min(len(headers), len(row)))}
-                                row_dict["embeddings"] = embedding
-                                
-                                json.dump(row_dict, json_file, ensure_ascii=False)
-                                json_file.write("\n")
-
-                                counter += 1
+                        record_embeddings(reader, headers, column_index, clear_file=True)
                     else:
                         print("\nError: Invalid column number.")
                         return False
@@ -181,12 +175,7 @@ def extract_inputfile():
                 except ValueError:
                     print("\nError: Invalid input. Please enter a valid column number.")
                     return False
-                
                 print("Completed.")
-            
-            # To save vectorDB
-            vectordb(temp_file_name)
-
             return True
 
         except FileNotFoundError:
@@ -208,11 +197,9 @@ while True:
     if option == '1':
         success = extract_inputfile()
         if success:
-            break
+            vectordb()
     elif option == '2':
-        success = vectordb()
-        if success:
-            break
+        vectordb()
     elif option == '3':
         print("Exit")
         exit(0)
