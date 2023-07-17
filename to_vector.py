@@ -22,6 +22,16 @@ pinecone_environment = os.environ.get("PINECONE_ENVIRONMENT")
 EMBEDDING_MODEL = "text-embedding-ada-002"
 
 
+def read_jsonl(filename_jsonl):
+    try:
+        with open(filename_jsonl, 'r', encoding='utf-8') as f:
+            data = []
+            for line in f:
+                data.append(json.loads(line))
+        return data
+    except FileNotFoundError:
+        return None
+
 # For saving embeddings to a specified file.
 # All data will be inserted in the target file. Not clear all before writing.
 # clear_file: {True: Clears existing data and overwrites it, False: Appends new data after the existing data.}
@@ -86,12 +96,9 @@ def vectordb(filename_json = './data/temp.jsonl'):
         # Delete exsisting data in DB
         index.delete(deleteAll='true')
 
-    # Import from temp.json data
-    try:
-        with open(filename_json, 'r', encoding='utf-8') as f:
-            data = [json.loads(line) for line in f.readlines()]
-    except FileNotFoundError:
-        print("A temporary file does not exist. Please select option 1.")
+    data = read_jsonl(filename_json)
+    if data == None:
+        print("\nError: A temporary file does not exist. Please select option 1.")
         return False
 
     # Upsert Pinecone DB
