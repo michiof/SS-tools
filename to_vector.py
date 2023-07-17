@@ -35,7 +35,7 @@ def read_jsonl(filename_jsonl):
 # For saving embeddings to a specified file.
 # All data will be inserted in the target file. Not clear all before writing.
 # clear_file: {True: Clears existing data and overwrites it, False: Appends new data after the existing data.}
-def record_embeddings(data_set, headers, embedding_column_index, clear_file, output_file_name = './data/temp.jsonl'):
+def record_embeddings(data_set, embedding_column_name, clear_file, output_file_name = './data/temp.jsonl'):
     if clear_file:
         # Open the file in write mode to create it or clear it if it already exists
         with open(output_file_name, 'w', encoding='utf-8') as json_file:
@@ -43,6 +43,7 @@ def record_embeddings(data_set, headers, embedding_column_index, clear_file, out
     with open(output_file_name, 'a', encoding='utf-8') as json_file:
         print("\nStart embeddigns process for")
         counter = 1
+        id_num = 1
         for row in data_set:
             
             # for avoiding API rate limit, wait 60sec every 5000
@@ -52,19 +53,20 @@ def record_embeddings(data_set, headers, embedding_column_index, clear_file, out
             
             # If an embeddings error is returned, then back to menu.
             try:
-                embedding = openai.Embedding.create(input=row[embedding_column_index], model=EMBEDDING_MODEL)["data"][0]["embedding"]
+                embedding = openai.Embedding.create(input=row[embedding_column_name], model=EMBEDDING_MODEL)["data"][0]["embedding"]
             except Exception as e:
                 print(f"Error when creating embeddings in {row}: {e}\n\nEmbedding creation failed. Please try agin.")
                 return False
-            print(row[0])
-            row_dict = {headers[i]: row[i] for i in range(min(len(headers), len(row)))}
+            
+            print(f"id_{id_num}")
+            row_dict = row.copy()
             row_dict["embeddings"] = embedding
             
             json.dump(row_dict, json_file, ensure_ascii=False)
             json_file.write("\n")
 
             counter += 1
-
+            id_num += 1
 
 # For saving Vector and meta data in online vectorDB(s)
 def vectordb(filename_json = './data/temp.jsonl'):
@@ -153,38 +155,41 @@ def extract_inputfile():
     if filename.endswith('.csv'):
         try:
             with open(filename, 'r', encoding='utf-8-sig') as f:
-                reader = csv.reader(f)
-                headers = next(reader)
+                reader = csv.DictReader(f)
+                headers = reader.fieldnames
 
                 # Show all available columns
                 print("\nAvailable columns:")
                 for i, header in enumerate(headers):
                     print(f'{i+1}: {header}')
-                print("\n== Please make sure that all column names are written in English. ==\n")
-                
+
                 # Select a column which should be embeddings
-                column_choice = input("Enter the column number you want to create embeddings: ")
-                try:
-                    column_index = int(column_choice) - 1
-                    if column_index >= 0 and column_index < len(headers):
-                        selected_column = headers[column_index]
-                        print(f"You selected column: {selected_column}")
-
-                        confirmation = input("\nAre you sure to start the embedding process? (yes/no): ")
-                        if confirmation.lower() != "yes":
-                            print("\nAborted.")
-                            return False
-                        record_embeddings(reader, headers, column_index, clear_file=True)
-                    else:
-                        print("\nError: Invalid column number.")
+                while True:
+                    column_choice = input("Enter the column number you want to create embeddings or type 'menu' to go back: ")
+                    if column_choice.lower() == "menu":
                         return False
+                    try:
+                        column_index = int(column_choice) - 1
+                        if column_index >= 0 and column_index < len(headers):
+                            selected_column = headers[column_index]
+                            print(f"You selected column: {selected_column}")
 
-                except ValueError:
-                    print("\nError: Invalid input. Please enter a valid column number.")
-                    return False
+                            # Confirmation to start embeddings
+                            confirmation = input("\nAre you sure to start the embedding process? (yes/no): ")
+                            if confirmation.lower() != "yes":
+                                    print("\nAborted.")
+                                    return False
+                            
+                            break
+                        else:
+                            print("\nError: Invalid column number.")
+                    except ValueError:
+                        print("\nError: Invalid input. Please enter a valid column number.")
+
+                # To save embeddings
+                record_embeddings(reader, selected_column, clear_file=True)
                 print("Completed.")
-            return True
-
+            
         except FileNotFoundError:
             print("\nError: File not found. Please enter a valid filename.")
             return False
