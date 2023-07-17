@@ -25,7 +25,7 @@ EMBEDDING_MODEL = "text-embedding-ada-002"
 # For saving embeddings to a specified file.
 # All data will be inserted in the target file. Not clear all before writing.
 # clear_file: {True: Clears existing data and overwrites it, False: Appends new data after the existing data.}
-def record_embeddings(data, headers, embedding_column_index, clear_file, output_file_name = './data/temp.jsonl'):
+def record_embeddings(data_set, headers, embedding_column_index, clear_file, output_file_name = './data/temp.jsonl'):
     if clear_file:
         # Open the file in write mode to create it or clear it if it already exists
         with open(output_file_name, 'w', encoding='utf-8') as json_file:
@@ -33,7 +33,7 @@ def record_embeddings(data, headers, embedding_column_index, clear_file, output_
     with open(output_file_name, 'a', encoding='utf-8') as json_file:
         print("\nStart embeddigns process for")
         counter = 1
-        for row in data:
+        for row in data_set:
             
             # for avoiding API rate limit, wait 60sec every 5000
             if counter % 5000 == 0:
