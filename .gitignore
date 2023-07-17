@@ -161,8 +161,9 @@ cython_debug/
 #.idea/
 
 
-# Ignore everything inside 'data' directory
-/data/*
+# Data directory (ignore all except for data_sample.csv)
+data/*
+!data/data_sample.csv
 
 # OS generated files
 .DS_Store
