@@ -21,7 +21,7 @@ pinecone_environment = os.environ.get("PINECONE_ENVIRONMENT")
 # Define the embeddings model
 EMBEDDING_MODEL = "text-embedding-ada-002"
 
-
+# For importing jsonl data
 def read_jsonl(filename_jsonl):
     try:
         with open(filename_jsonl, 'r', encoding='utf-8') as f:
@@ -157,7 +157,7 @@ def find_diff(dataset_new, dataset_old, identifier_column):
     # Find common and different ReportIDs
     dataset_new_ids = {row[identifier_column] for row in dataset_new}
     dataset_old_ids = {row[identifier_column] for row in dataset_old}
-    #common_ids = dataset_new_ids.intersection(dataset_old_ids)
+    common_ids = dataset_new_ids.intersection(dataset_old_ids)
     different_ids = dataset_new_ids.symmetric_difference(dataset_old_ids)
 
     # If there are different IDs, ask user if they want to see the IDs
@@ -165,8 +165,9 @@ def find_diff(dataset_new, dataset_old, identifier_column):
     if len_diff_ids > 1:
         show_ids = input(f"\n{len_diff_ids} different IDs. Do you want to see them? (yes/no): ")
         if show_ids.lower() == 'yes':
+            sorted_ids = sorted(list(different_ids))
             print('Different IDs:')
-            for id in different_ids:
+            for id in sorted_ids:
                 print(id)
 
     # Find rows in CSV (dataset_new) that are not in JSONL (dataset_old)
