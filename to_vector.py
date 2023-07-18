@@ -40,8 +40,9 @@ def record_embeddings(data_set, embedding_column_name, clear_file, output_file_n
         # Open the file in write mode to create it or clear it if it already exists
         with open(output_file_name, 'w', encoding='utf-8') as json_file:
             pass
+
     with open(output_file_name, 'a', encoding='utf-8') as json_file:
-        print("\nStart embeddigns process for")
+        print("\nStart embeddigns process...")
         counter = 1
         id_num = 1
         for row in data_set:
@@ -88,7 +89,7 @@ def vectordb(filename_json = './data/temp.jsonl'):
             
             print("Created the new index in Pinecone.")
         except Exception as e:
-            print(f"Failed to create index: {e}\n\nTry again with option 2.")
+            print(f"Failed to create index: {e}\n\nTry again with option 3.")
             return False
     else:
         confirmation = input("\nAre you sure to overwrite the exsiting Index? (yes/no): ")
@@ -152,31 +153,24 @@ def find_diff(dataset_new, dataset_old, identifier_column):
     # Find common and different ReportIDs
     dataset_new_ids = {row[identifier_column] for row in dataset_new}
     dataset_old_ids = {row[identifier_column] for row in dataset_old}
-    common_ids = dataset_new_ids.intersection(dataset_old_ids)
+    #common_ids = dataset_new_ids.intersection(dataset_old_ids)
     different_ids = dataset_new_ids.symmetric_difference(dataset_old_ids)
-
-    print(common_ids)
 
     # If there are different IDs, ask user if they want to see the IDs
     len_diff_ids = len(different_ids)
-    print('Count of Different IDs:', len_diff_ids)
     if len_diff_ids > 1:
-        show_ids = input('There are more than one different IDs. Do you want to see them? (yes/no): ')
+        show_ids = input(f"\n{len_diff_ids} different IDs. Do you want to see them? (yes/no): ")
         if show_ids.lower() == 'yes':
             print('Different IDs:')
             for id in different_ids:
                 print(id)
+
     # Find rows in CSV (dataset_new) that are not in JSONL (dataset_old)
-    #missing_in_jsonl = [row for row in dataset_new if row[identifier_column] in different_ids]
-
-    #print('Rows in CSV that are not in JSONL:')
-    #for row in missing_in_jsonl:
-    #    print(row)
-
-    return different_ids
+    missing_data = [row for row in dataset_new if row[identifier_column] in different_ids]
+    return missing_data
 
 # Import file -> select a column which should be embeddings -> embeddings -> save it in a temp. file
-def extract_inputfile():
+def extract_inputfile(ammend):
     filename = './data/' + input("\nEnter the filename: ")
 
     if filename.endswith('.csv'):
@@ -184,19 +178,12 @@ def extract_inputfile():
             with open(filename, 'r', encoding='utf-8-sig') as f:
                 reader = csv.DictReader(f)
                 headers = reader.fieldnames
+                clear_file=True
 
                 # Show all available columns
                 print("\nAvailable columns:")
                 for i, header in enumerate(headers):
                     print(f'{i+1}: {header}')
-
-                print(headers[0])
-
-                #jsonl_data = read_jsonl('./data/temp.jsonl')
-                #csv_data = list(reader)
-                #identifier_column = headers[0]
-                #find_diff(csv_data, jsonl_data, identifier_column)
-
 
                 # Select a column which should be embeddings
                 while True:
@@ -208,6 +195,14 @@ def extract_inputfile():
                         if column_index >= 0 and column_index < len(headers):
                             selected_column = headers[column_index]
                             print(f"You selected column: {selected_column}")
+
+                            # To pickup diff data if ammend is true.
+                            if ammend:
+                                csv_data = list(reader)
+                                jsonl_data = read_jsonl('./data/temp.jsonl')
+                                identifier_column = headers[0]
+                                reader = find_diff(csv_data, jsonl_data, identifier_column)
+                                clear_file=False
 
                             # Confirmation to start embeddings
                             confirmation = input("\nAre you sure to start the embedding process? (yes/no): ")
@@ -221,7 +216,7 @@ def extract_inputfile():
                         print("\nError: Invalid input. Please enter a valid column number.")
 
                 # To save embeddings
-                record_embeddings(reader, selected_column, clear_file=True)
+                record_embeddings(reader, selected_column, clear_file)
                 print("Completed.")
             
         except FileNotFoundError:
@@ -236,17 +231,22 @@ def extract_inputfile():
 while True:
     print("\n\nOptions:")
     print("1: Start from the first step")
-    print("2: Resume importing to VectorDB")
-    print("3: Quit")
+    print("2: Append / Replace Data")
+    print("3: Resume importing to VectorDB")
+    print("4: Quit")
     option = input("\nPlease choose an option: ")
 
     if option == '1':
-        success = extract_inputfile()
+        success = extract_inputfile(ammend=False)
         if success:
             vectordb()
     elif option == '2':
-        vectordb()
+        success = extract_inputfile(ammend=True)
+        if success:
+            vectordb()
     elif option == '3':
+        vectordb()
+    elif option == '4':
         print("Exit")
         exit(0)
     else:
