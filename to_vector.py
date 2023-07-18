@@ -39,12 +39,14 @@ def record_embeddings(data_set, embedding_column_name, clear_file, output_file_n
     if clear_file:
         # Open the file in write mode to create it or clear it if it already exists
         with open(output_file_name, 'w', encoding='utf-8') as json_file:
-            pass
+            id_num = 1
+    else:
+        with open(output_file_name, 'r', encoding='utf-8') as json_file:
+            id_num = sum(1 for line in json_file) + 1
 
     with open(output_file_name, 'a', encoding='utf-8') as json_file:
         print("\nStart embeddigns process...")
         counter = 1
-        id_num = 1
         for row in data_set:
             
             # for avoiding API rate limit, wait 60sec every 5000
@@ -218,7 +220,8 @@ def extract_inputfile(ammend):
                 # To save embeddings
                 record_embeddings(reader, selected_column, clear_file)
                 print("Completed.")
-            
+            return True
+        
         except FileNotFoundError:
             print("\nError: File not found. Please enter a valid filename.")
             return False
