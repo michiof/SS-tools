@@ -88,7 +88,7 @@ def vectordb(filename_json = './data/temp.jsonl'):
             
             print("Created the new index in Pinecone.")
         except Exception as e:
-            print(f"Failed to create index: {e}\n\nTry again by option 2.")
+            print(f"Failed to create index: {e}\n\nTry again with option 2.")
             return False
     else:
         confirmation = input("\nAre you sure to overwrite the exsiting Index? (yes/no): ")
@@ -147,6 +147,33 @@ def flatten_json(any_json, delimiter='_'):
     flatten(any_json)
     return flat_json
 
+# Check diff between two files
+def find_diff(dataset_new, dataset_old, identifier_column):
+    # Find common and different ReportIDs
+    dataset_new_ids = {row[identifier_column] for row in dataset_new}
+    dataset_old_ids = {row[identifier_column] for row in dataset_old}
+    common_ids = dataset_new_ids.intersection(dataset_old_ids)
+    different_ids = dataset_new_ids.symmetric_difference(dataset_old_ids)
+
+    print(common_ids)
+
+    # If there are different IDs, ask user if they want to see the IDs
+    len_diff_ids = len(different_ids)
+    print('Count of Different IDs:', len_diff_ids)
+    if len_diff_ids > 1:
+        show_ids = input('There are more than one different IDs. Do you want to see them? (yes/no): ')
+        if show_ids.lower() == 'yes':
+            print('Different IDs:')
+            for id in different_ids:
+                print(id)
+    # Find rows in CSV (dataset_new) that are not in JSONL (dataset_old)
+    #missing_in_jsonl = [row for row in dataset_new if row[identifier_column] in different_ids]
+
+    #print('Rows in CSV that are not in JSONL:')
+    #for row in missing_in_jsonl:
+    #    print(row)
+
+    return different_ids
 
 # Import file -> select a column which should be embeddings -> embeddings -> save it in a temp. file
 def extract_inputfile():
@@ -163,9 +190,17 @@ def extract_inputfile():
                 for i, header in enumerate(headers):
                     print(f'{i+1}: {header}')
 
+                print(headers[0])
+
+                #jsonl_data = read_jsonl('./data/temp.jsonl')
+                #csv_data = list(reader)
+                #identifier_column = headers[0]
+                #find_diff(csv_data, jsonl_data, identifier_column)
+
+
                 # Select a column which should be embeddings
                 while True:
-                    column_choice = input("Enter the column number you want to create embeddings or type 'menu' to go back: ")
+                    column_choice = input("Enter the column number you want to create embeddings OR type 'menu' to go back: ")
                     if column_choice.lower() == "menu":
                         return False
                     try:
@@ -179,7 +214,6 @@ def extract_inputfile():
                             if confirmation.lower() != "yes":
                                     print("\nAborted.")
                                     return False
-                            
                             break
                         else:
                             print("\nError: Invalid column number.")
