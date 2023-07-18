@@ -112,16 +112,17 @@ def vectordb(filename_json = './data/temp.jsonl'):
     try:
         for i, record in enumerate(data):
             metadata = {key: record[key] for key in record if key != "embeddings"}
+            id_num = i+1
             vector = (
-                f"id_{i}",
+                f"id_{id_num}",
                 record["embeddings"],
                 metadata
             )
             try:
                 index.upsert([vector])
-                print(f"id_{i}")
+                print(f"id_{id_num}")
             except Exception as e:
-                print(f"Failed to upsert data at index {i}: {e}")
+                print(f"Failed to upsert data at index {id_num}: {e}")
                 return False
 
         print("Completed upsert to Pinecone database.\n\nExit\n")
