@@ -101,6 +101,7 @@ def vectordb(filename_json = './data/temp.jsonl'):
         # Delete exsisting data in DB
         index.delete(deleteAll='true')
 
+    # Read data from temp.jsonl file.
     data = read_jsonl(filename_json)
     if data == None:
         print("\nError: A temporary file does not exist. Please select option 1.")
