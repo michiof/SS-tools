@@ -8,6 +8,7 @@ import openai
 import pinecone
 import csv
 import json
+import copy
 import time
 from dotenv import load_dotenv
 
@@ -152,13 +153,50 @@ def flatten_json(any_json, delimiter='_'):
     flatten(any_json)
     return flat_json
 
+
 # Check diff between two files
-def find_diff(dataset_new, dataset_old, identifier_column):
+def find_diff(dataset_new, dataset_old, identifier_column, embedding_column_name = 1, output_file_name = './data/temp.jsonl'):
     # Find common and different ReportIDs
     dataset_new_ids = {row[identifier_column] for row in dataset_new}
     dataset_old_ids = {row[identifier_column] for row in dataset_old}
     common_ids = dataset_new_ids.intersection(dataset_old_ids)
     different_ids = dataset_new_ids.symmetric_difference(dataset_old_ids)
+
+    # Initiate a list to hold missing data
+    missing_data = []
+
+    # Check if contents of common_ids are the same in both datasets
+    len_common_ids = len(common_ids)
+    if len_common_ids > 1:
+        # Initiate a list to hold unmatched IDs
+        unmatched_ids = []
+        
+        for id_ in common_ids:
+            # Subset the data based on the id and sort by sort_by_column
+            new_subset = sorted([row for row in dataset_new if row[identifier_column] == id_], key=lambda x: x[identifier_column])
+            
+            # Make a copy of old subset to preserve the original data with 'embeddings'
+            old_subset = [row for row in dataset_old if row[identifier_column] == id_]
+            old_subset_copy = copy.deepcopy(old_subset)
+            for item in old_subset_copy:
+                item.pop('embeddings', None)
+            old_subset_copy = sorted(old_subset_copy, key=lambda x: x[identifier_column])
+
+            # Check if the subsets match
+            if new_subset != old_subset_copy:
+                unmatched_ids.append(id_)
+                print(f"Updated data found for already registered ID: {id_}")
+                # If the subsets do not match, add the data from the new_subset to the missing_data list
+                missing_data.extend(new_subset)
+                #print(f"New data: {new_subset}")
+                #print(missing_data)
+
+        # Remove the unmatched ids from the old_dataset and save it to temp,jsol file.
+        dataset_old = [row for row in dataset_old if row[identifier_column] not in unmatched_ids]
+        with open(output_file_name, 'w', encoding='utf-8') as f:
+            for entry in dataset_old:
+                json.dump(entry, f, ensure_ascii=False)
+                f.write('\n')
 
     # If there are different IDs, ask user if they want to see the IDs
     len_diff_ids = len(different_ids)
@@ -167,11 +205,12 @@ def find_diff(dataset_new, dataset_old, identifier_column):
         if show_ids.lower() == 'yes':
             sorted_ids = sorted(list(different_ids))
             print('Different IDs:')
-            for id in sorted_ids:
-                print(id)
+            for id_ in sorted_ids:
+                print(f"id_{id_}")
 
     # Find rows in CSV (dataset_new) that are not in JSONL (dataset_old)
-    missing_data = [row for row in dataset_new if row[identifier_column] in different_ids]
+    missing_data.extend([row for row in dataset_new if row[identifier_column] in different_ids])
+    print(missing_data)
     return missing_data
 
 # Import file -> select a column which should be embeddings -> embeddings -> save it in a temp. file
@@ -244,8 +283,8 @@ while True:
 
     if option == '1':
         success = extract_inputfile(ammend=False)
-        if success:
-            vectordb()
+        #if success:
+            #vectordb()
     elif option == '2':
         success = extract_inputfile(ammend=True)
         if success:
