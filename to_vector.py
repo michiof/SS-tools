@@ -36,14 +36,15 @@ def read_jsonl(filename_jsonl):
 # For saving embeddings to a specified file.
 # All data will be inserted in the target file. Not clear all before writing.
 # clear_file: {True: Clears existing data and overwrites it, False: Appends new data after the existing data.}
-def record_embeddings(data_set, embedding_column_name, clear_file, output_file_name = './data/temp.jsonl'):
+def record_embeddings(data_set, embedding_column_name, identifier_column, clear_file, output_file_name = './data/temp.jsonl'):
     if clear_file:
         # Open the file in write mode to create it or clear it if it already exists
         with open(output_file_name, 'w', encoding='utf-8') as json_file:
-            id_num = 1
-    else:
-        with open(output_file_name, 'r', encoding='utf-8') as json_file:
-            id_num = sum(1 for line in json_file) + 1
+            pass
+            #id_num = 1
+    #else:
+        #with open(output_file_name, 'r', encoding='utf-8') as json_file:
+            #id_num = sum(1 for line in json_file) + 1
 
     with open(output_file_name, 'a', encoding='utf-8') as json_file:
         print("\nStart embeddigns process...")
@@ -62,7 +63,7 @@ def record_embeddings(data_set, embedding_column_name, clear_file, output_file_n
                 print(f"Error when creating embeddings in {row}: {e}\n\nEmbedding creation failed. Please try agin.")
                 return False
             
-            print(f"id_{id_num}")
+            print(f"id_{row[identifier_column]}")
             row_dict = row.copy()
             row_dict["embeddings"] = embedding
             
@@ -70,7 +71,7 @@ def record_embeddings(data_set, embedding_column_name, clear_file, output_file_n
             json_file.write("\n")
 
             counter += 1
-            id_num += 1
+            #id_num += 1
 
 # For saving Vector and meta data in online vectorDB(s)
 def vectordb(filename_json = './data/temp.jsonl'):
@@ -155,7 +156,7 @@ def flatten_json(any_json, delimiter='_'):
 
 
 # Check diff between two files
-def find_diff(dataset_new, dataset_old, identifier_column, embedding_column_name = 1, output_file_name = './data/temp.jsonl'):
+def find_diff(dataset_new, dataset_old, identifier_column, output_file_name = './data/temp.jsonl'):
     # Find common and different ReportIDs
     dataset_new_ids = {row[identifier_column] for row in dataset_new}
     dataset_old_ids = {row[identifier_column] for row in dataset_old}
@@ -235,7 +236,9 @@ def extract_inputfile(ammend):
                     if column_choice.lower() == "menu":
                         return False
                     try:
+                        identifier_column = headers[0]
                         column_index = int(column_choice) - 1
+
                         if column_index >= 0 and column_index < len(headers):
                             selected_column = headers[column_index]
                             print(f"You selected column: {selected_column}")
@@ -244,7 +247,6 @@ def extract_inputfile(ammend):
                             if ammend:
                                 csv_data = list(reader)
                                 jsonl_data = read_jsonl('./data/temp.jsonl')
-                                identifier_column = headers[0]
                                 reader = find_diff(csv_data, jsonl_data, identifier_column)
                                 clear_file=False
 
@@ -260,7 +262,7 @@ def extract_inputfile(ammend):
                         print("\nError: Invalid input. Please enter a valid column number.")
 
                 # To save embeddings
-                record_embeddings(reader, selected_column, clear_file)
+                record_embeddings(reader, selected_column, identifier_column, clear_file)
                 print("Completed.")
             return True
         
