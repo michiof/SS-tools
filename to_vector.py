@@ -33,18 +33,13 @@ def read_jsonl(filename_jsonl):
     except FileNotFoundError:
         return None
 
-# For saving embeddings to a specified file.
-# All data will be inserted in the target file. Not clear all before writing.
+# For saving embeddings to a specified file. 
 # clear_file: {True: Clears existing data and overwrites it, False: Appends new data after the existing data.}
 def record_embeddings(data_set, embedding_column_name, identifier_column, clear_file, output_file_name = './data/temp.jsonl'):
     if clear_file:
         # Open the file in write mode to create it or clear it if it already exists
         with open(output_file_name, 'w', encoding='utf-8') as json_file:
             pass
-            #id_num = 1
-    #else:
-        #with open(output_file_name, 'r', encoding='utf-8') as json_file:
-            #id_num = sum(1 for line in json_file) + 1
 
     with open(output_file_name, 'a', encoding='utf-8') as json_file:
         print("\nStart embeddigns process...")
@@ -71,7 +66,6 @@ def record_embeddings(data_set, embedding_column_name, identifier_column, clear_
             json_file.write("\n")
 
             counter += 1
-            #id_num += 1
 
 # For saving Vector and meta data in online vectorDB(s)
 def vectordb(filename_json = './data/temp.jsonl'):
@@ -189,11 +183,10 @@ def find_diff(dataset_new, dataset_old, identifier_column, output_file_name = '.
                 print(f"Updated data found for already registered ID: {id_}")
                 # If the subsets do not match, add the data from the new_subset to the missing_data list
                 missing_data.extend(new_subset)
-                #print(f"New data: {new_subset}")
-                #print(missing_data)
 
         # Remove the unmatched ids from the old_dataset and save it to temp,jsol file.
-        dataset_old = [row for row in dataset_old if row[identifier_column] not in unmatched_ids]
+        remove_ids = unmatched_ids + list(different_ids)  # IDs to be removed from old dataset
+        dataset_old = [row for row in dataset_old if row[identifier_column] not in remove_ids]
         with open(output_file_name, 'w', encoding='utf-8') as f:
             for entry in dataset_old:
                 json.dump(entry, f, ensure_ascii=False)
@@ -285,8 +278,8 @@ while True:
 
     if option == '1':
         success = extract_inputfile(ammend=False)
-        #if success:
-            #vectordb()
+        if success:
+            vectordb()
     elif option == '2':
         success = extract_inputfile(ammend=True)
         if success:
