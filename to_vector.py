@@ -30,6 +30,8 @@ dir_name = os.path.dirname(default_temp_file)
 if not os.path.exists(dir_name):
     os.makedirs(dir_name)
 
+
+
 # For importing jsonl data
 def read_jsonl(filename_jsonl):
     try:
@@ -69,6 +71,7 @@ def record_embeddings(data_set, embedding_column_name, identifier_column, clear_
             
             print(f"id_{row[identifier_column]}")
             row_dict = row.copy()
+            row_dict["embeddings_target"] = embedding_column_name
             row_dict["embeddings"] = embedding
             
             json.dump(row_dict, json_file, ensure_ascii=False)
@@ -116,7 +119,7 @@ def vectordb(filename_json = default_temp_file):
     print("\nStart upsert...")
     try:
         for i, record in enumerate(data):
-            metadata = {key: record[key] for key in record if key != "embeddings"}
+            metadata = {key: record[key] for key in record if key not in ["embeddings", "embeddings_target"]}
             id_num = i+1
             vector = (
                 f"id_{id_num}",
@@ -183,15 +186,17 @@ def find_diff(dataset_new, dataset_old, identifier_column, output_file_name = de
             old_subset = [row for row in dataset_old if row[identifier_column] == id_]
             old_subset_copy = copy.deepcopy(old_subset)
             for item in old_subset_copy:
+                item.pop('embeddings_target', None)
                 item.pop('embeddings', None)
             old_subset_copy = sorted(old_subset_copy, key=lambda x: x[identifier_column])
 
-            # Check if the subsets match
+            # Check if the subsets match, and then add the data from the new_subset to the missing_data list
             if new_subset != old_subset_copy:
                 unmatched_ids.append(id_)
-                print(f"Updated data found for already registered ID: {id_}")
-                # If the subsets do not match, add the data from the new_subset to the missing_data list
                 missing_data.extend(new_subset)
+
+        # Print all unmatched ids together
+        print(f"\nUpdated data ID: {', '.join(map(str, sorted(unmatched_ids)))}")
 
         # Remove the unmatched ids from the old_dataset and save it to temp,jsol file.
         remove_ids = unmatched_ids + list(different_ids)  # IDs to be removed from old dataset
@@ -201,23 +206,17 @@ def find_diff(dataset_new, dataset_old, identifier_column, output_file_name = de
                 json.dump(entry, f, ensure_ascii=False)
                 f.write('\n')
 
-    # If there are different IDs, ask user if they want to see the IDs
     len_diff_ids = len(different_ids)
     if len_diff_ids > 1:
-        show_ids = input(f"\n{len_diff_ids} different IDs. Do you want to see them? (yes/no): ")
-        if show_ids.lower() == 'yes':
-            sorted_ids = sorted(list(different_ids))
-            print('Different IDs:')
-            for id_ in sorted_ids:
-                print(f"id_{id_}")
+        sorted_ids = sorted(list(different_ids))
+        print('Nonexistent Data ID:', ', '.join(map(str, sorted_ids)))
 
     # Find rows in CSV (dataset_new) that are not in JSONL (dataset_old)
     missing_data.extend([row for row in dataset_new if row[identifier_column] in different_ids])
-    print(missing_data)
     return missing_data
 
 # Import file -> select a column which should be embeddings -> embeddings -> save it in a temp. file
-def extract_inputfile(ammend):
+def extract_inputfile(append):
     filename = './data/' + input("\nEnter the filename: ")
 
     if filename.endswith('.csv'):
@@ -225,50 +224,53 @@ def extract_inputfile(ammend):
             with open(filename, 'r', encoding='utf-8-sig') as f:
                 reader = csv.DictReader(f)
                 headers = reader.fieldnames
+                identifier_column = headers[0]
                 clear_file=True
+                embeddings_target = None
 
-                # Show all available columns
-                print("\nAvailable columns:")
-                for i, header in enumerate(headers):
-                    print(f'{i+1}: {header}')
-
-                # Select a column which should be embeddings
-                while True:
-                    column_choice = input("Enter the column number you want to create embeddings OR type 'menu' to go back: ")
-                    if column_choice.lower() == "menu":
+                # To pickup diff data if append is true.
+                if append:
+                    # Check if default temp. file is exsits
+                    if not os.path.exists(default_temp_file):
+                        print("\nTemporaly file not found. Please try again with option 1.")
                         return False
-                    try:
-                        identifier_column = headers[0]
-                        column_index = int(column_choice) - 1
+                    csv_data = list(reader)
+                    jsonl_data = read_jsonl(default_temp_file)
+                    reader = find_diff(csv_data, jsonl_data, identifier_column)
+                    # Retrieve 'embeddings_target' from the first data entry
+                    embeddings_target = jsonl_data[0].get('embeddings_target', None)
+                    # Switching to append mode for def "record_embedding"
+                    clear_file=False
 
-                        if column_index >= 0 and column_index < len(headers):
-                            selected_column = headers[column_index]
-                            print(f"You selected column: {selected_column}")
+                # Show all available columns and select embeddings_target if it is None.
+                if embeddings_target is None:
+                    print("\nAvailable columns:")
+                    for i, header in enumerate(headers):
+                        print(f'{i+1}: {header}')
 
-                            # To pickup diff data if ammend is true.
-                            if ammend:
-                                # Check if default temp. file is exsits
-                                if not os.path.exists(default_temp_file):
-                                    print("\nTemporaly file not found. Please try again with option 1.")
-                                    return False
-                                csv_data = list(reader)
-                                jsonl_data = read_jsonl(default_temp_file)
-                                reader = find_diff(csv_data, jsonl_data, identifier_column)
-                                clear_file=False
+                    # Select a column which should be embeddings
+                    while True:
+                        column_choice = input("Enter the column number you want to create embeddings OR type 'menu' to go back: ")
+                        if column_choice.lower() == "menu":
+                            return False
+                        try:
+                            column_index = int(column_choice) - 1
 
-                            # Confirmation to start embeddings
-                            confirmation = input("\nAre you sure to start the embedding process? (yes/no): ")
-                            if confirmation.lower() != "yes":
-                                    print("\nAborted.")
-                                    return False
-                            break
-                        else:
-                            print("\nError: Invalid column number.")
-                    except ValueError:
-                        print("\nError: Invalid input. Please enter a valid column number.")
+                            if column_index >= 0 and column_index < len(headers):
+                                embeddings_target = headers[column_index]
+                                break
+                            else:
+                                print("\nError: Invalid column number.")
+                        except ValueError:
+                            print("\nError: Invalid input. Please enter a valid column number.")
 
-                # To save embeddings
-                record_embeddings(reader, selected_column, identifier_column, clear_file)
+                # Confirmation to start embeddings
+                print(f"\nColumn to be embedded: {embeddings_target}")
+                confirmation = input("\nAre you sure to start the embedding process? (yes/no): ")
+                if confirmation.lower() != "yes":
+                    print("\nAborted.")
+                    return False
+                record_embeddings(reader, embeddings_target, identifier_column, clear_file)
                 print("Completed.")
             return True
         
@@ -290,13 +292,13 @@ while True:
     option = input("\nPlease choose an option: ")
 
     if option == '1':
-        success = extract_inputfile(ammend=False)
-        if success:
-            vectordb()
+        if extract_inputfile(append=False):
+            pass
+            #vectordb()
     elif option == '2':
-        success = extract_inputfile(ammend=True)
-        if success:
-            vectordb()
+        if extract_inputfile(append=True):
+            pass
+            #vectordb()
     elif option == '3':
         vectordb()
     elif option == '4':
