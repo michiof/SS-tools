@@ -148,50 +148,51 @@ def find_diff(dataset_new, dataset_old, identifier_column, output_file_name = de
     # Initiate a list to hold missing data
     missing_data = []
 
-    # Check if contents of common_ids are the same in both datasets
-    len_common_ids = len(common_ids)
-    if len_common_ids > 1:
+    # Check if data in all keys are completely the same as the data_old
+    if len(common_ids) > 0:
         # Initiate a list to hold unmatched IDs
         unmatched_ids = []
         
         for id_ in common_ids:
-            # Subset the data based on the id and sort by sort_by_column
-            new_subset = sorted([row for row in dataset_new if row[identifier_column] == id_], key=lambda x: x[identifier_column])
-            
-            # Make a copy of old subset to preserve the original data with 'embeddings'
+            # Make a subset data for common_ids
+            new_subset = [row for row in dataset_new if row[identifier_column] == id_]
             old_subset = [row for row in dataset_old if row[identifier_column] == id_]
+            
+            # Make a copy of old subset to preserve the original data for excluding 'embeddings_target'and 'embeddings' data
             old_subset_copy = copy.deepcopy(old_subset)
             for item in old_subset_copy:
                 item.pop('embeddings_target', None)
                 item.pop('embeddings', None)
             old_subset_copy = sorted(old_subset_copy, key=lambda x: x[identifier_column])
 
-            # Check if the subsets match, and then add the data from the new_subset to the missing_data list
+            # If the subsets match between new and old, then add the id to unmatched list for removing from dataset, and missing_data list for addting to dataset.
             if new_subset != old_subset_copy:
                 unmatched_ids.append(id_)
                 missing_data.extend(new_subset)
 
-        # Print all unmatched ids together
+        # Print all unmatched ids with sorted
         print(f"\nUpdated data ID: {', '.join(map(str, sorted(unmatched_ids)))}")
 
         # Remove the unmatched ids from the old_dataset and save it to temp,jsol file.
-        remove_ids = unmatched_ids + list(different_ids)  # IDs to be removed from old dataset
+        # list(different_ids): to be removed from old dataset when the old dataset item is not included in the new one.
+        remove_ids = unmatched_ids + list(different_ids) 
         dataset_old = [row for row in dataset_old if row[identifier_column] not in remove_ids]
         with open(output_file_name, 'w', encoding='utf-8') as f:
             for entry in dataset_old:
                 json.dump(entry, f, ensure_ascii=False)
                 f.write('\n')
 
-    len_diff_ids = len(different_ids)
-    if len_diff_ids > 1:
+    # Sort for display
+    if len(different_ids) > 1:
         sorted_ids = sorted(list(different_ids))
         print('Nonexistent Data ID:', ', '.join(map(str, sorted_ids)))
 
-    # Find rows in CSV (dataset_new) that are not in JSONL (dataset_old)
+    # Obtain a list of the data to be newly embedded
     missing_data.extend([row for row in dataset_new if row[identifier_column] in different_ids])
     return missing_data
 
-# Import file -> select a column which should be embeddings -> embeddings -> save it in a temp. file
+
+# Extract data for the input file. If append is True, perform a differential update; if False, overwrite existing data.
 def extract_inputfile(append):
     filename = './data/' + input("\nEnter the filename: ")
 
