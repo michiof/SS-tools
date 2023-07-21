@@ -11,10 +11,12 @@
 
 ## to_vector.py
 csvファイル内の指定した1列を行ごとにembeddings化し、全列の情報をMeta dataとして、embeddingsと一緒にPineconeに登録するスクリプトです。
-例えば、Title, Article, published date, URLを1行目に、2行目以降はデータを配置し、スクリプト内でEmebeddings化する列を"Article"に指定すると、Pineconeには各行のArticleの内容に対するEmbeddingsベクトルデータと、その行に対応するMeta dataとして{"Title": "emebeddings化した行のTitle列のデータ", "Article": "Aricle列のデータ"...}が保存されます。
+例えば、UniqueID, Title, Article, published date, URLを1行目に、2行目以降はデータを配置し、スクリプト内でEmebeddings化する列を"Article"に指定すると、Pineconeには各行のArticleの内容に対するEmbeddingsベクトルデータと、その行に対応するMeta dataとして{"UniqueID": "UniqueIDのデータ", "Title": "Title列のデータ", "Article": "Aricle列のデータ"...}が保存されます。
 （エクセルファイルでQAで使いたい情報を編集後、csv(UTF-8)で保存すれば、そのままPineconeにベクトルデータとともに登録できます。embeddings化とMeta dataの登録のみをするスクリプトのため、QAの出力結果をテストしたいときはqa.pyを実行してください。データフォーマットを色々と変更して試したい時にご利用ください。）
 
-まれにPineconeのIndex新規作成直後のupsertは失敗することがあります。その時はoption 2を選んで再開すれば、前回embeddings化したデータを使って、そのままPineconeに登録できます。(多少の料金の節約にはなると思います)
+- 前回のデータとの差分のみembeddings化して登録した場合にはOption 2を選んでください。前回の実行時のファイルとの差分を検出して、自動で追加、入れ替え、削除を行なってくれます。
+- データの入れ替えを予定している場合には、csvの一番左の項目にUniqueID(重複のない番号)をあらかじめ入れておく方がベターです。スクリプトは一番左の列をまず確認し、同じIDがあった場合にはその他の列項目が同一かを確認します。
+- まれにPineconeのIndex新規作成直後のupsertは失敗することがあります。その時はoption 3を選んで再開すれば、前回embeddings化したデータを使って、そのままPineconeに登録できます。
 
 ### 起動方法
 1. 登録したいcsvファイルをdataフォルダに保存する
