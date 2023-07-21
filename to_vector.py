@@ -131,7 +131,7 @@ def vectordb(filename_json = default_temp_file):
                 print(f"Failed to upsert data at index {id_num}: {e}")
                 return False
 
-        print("Completed upsert to Pinecone database.\n\nExit\n")
+        print("Completed upsert to Pinecone database.\n\n")
         return True
     
     except Exception as e:
