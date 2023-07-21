@@ -30,8 +30,6 @@ dir_name = os.path.dirname(default_temp_file)
 if not os.path.exists(dir_name):
     os.makedirs(dir_name)
 
-
-
 # For importing jsonl data
 def read_jsonl(filename_jsonl):
     try:
@@ -161,14 +159,13 @@ def flatten_json(any_json, delimiter='_'):
     return flat_json
 
 
-# Check diff between two files
+# Check difference between two files
 def find_diff(dataset_new, dataset_old, identifier_column, output_file_name = default_temp_file):
     # Find common and different ReportIDs
     dataset_new_ids = {row[identifier_column] for row in dataset_new}
     dataset_old_ids = {row[identifier_column] for row in dataset_old}
     common_ids = dataset_new_ids.intersection(dataset_old_ids)
     different_ids = dataset_new_ids.symmetric_difference(dataset_old_ids)
-
     # Initiate a list to hold missing data
     missing_data = []
 
@@ -255,7 +252,6 @@ def extract_inputfile(append):
                             return False
                         try:
                             column_index = int(column_choice) - 1
-
                             if column_index >= 0 and column_index < len(headers):
                                 embeddings_target = headers[column_index]
                                 break
@@ -293,12 +289,10 @@ while True:
 
     if option == '1':
         if extract_inputfile(append=False):
-            pass
-            #vectordb()
+            vectordb()
     elif option == '2':
         if extract_inputfile(append=True):
-            pass
-            #vectordb()
+            vectordb()
     elif option == '3':
         vectordb()
     elif option == '4':
