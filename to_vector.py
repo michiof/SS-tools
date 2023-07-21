@@ -138,7 +138,7 @@ def vectordb(filename_json = default_temp_file):
         print(f"\nFailed to initiate Pinecone index or other error occurred: {e}\n\nPlease select Option 2 to resume it.")
         return False
 
-# Check difference between two files
+# Check difference between two files and return a list of data to be newly embedded
 def find_diff(dataset_new, dataset_old, identifier_column, output_file_name = default_temp_file):
     # Find common and different ReportIDs
     dataset_new_ids = {row[identifier_column] for row in dataset_new}
@@ -150,15 +150,15 @@ def find_diff(dataset_new, dataset_old, identifier_column, output_file_name = de
 
     # Check if data in all keys are completely the same as the data_old
     if len(common_ids) > 0:
-        # Initiate a list to hold unmatched IDs
+        # Initiate a list to hold unmatched (data) IDs
         unmatched_ids = []
         
         for id_ in common_ids:
-            # Make a subset data for common_ids
+            # Make subset data in common_ids
             new_subset = [row for row in dataset_new if row[identifier_column] == id_]
             old_subset = [row for row in dataset_old if row[identifier_column] == id_]
             
-            # Make a copy of old subset to preserve the original data for excluding 'embeddings_target'and 'embeddings' data
+            # Make a copy of old subset to preserve the data excluding 'embeddings_target'and 'embeddings'
             old_subset_copy = copy.deepcopy(old_subset)
             for item in old_subset_copy:
                 item.pop('embeddings_target', None)
@@ -192,7 +192,8 @@ def find_diff(dataset_new, dataset_old, identifier_column, output_file_name = de
     return missing_data
 
 
-# Extract data for the input file. If append is True, perform a differential update; if False, overwrite existing data.
+# Extract data for the input file.
+# append: {True: perform a differential update (go to def find_diff); False: overwrite existing data}
 def extract_inputfile(append):
     filename = './data/' + input("\nEnter the filename: ")
 
