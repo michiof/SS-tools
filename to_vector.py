@@ -22,6 +22,14 @@ pinecone_environment = os.environ.get("PINECONE_ENVIRONMENT")
 # Define the embeddings model
 EMBEDDING_MODEL = "text-embedding-ada-002"
 
+# Define temporary file name and location
+default_temp_file = './data/temp/temp.jsonl'
+
+# Create the directory if it does not exist
+dir_name = os.path.dirname(default_temp_file)
+if not os.path.exists(dir_name):
+    os.makedirs(dir_name)
+
 # For importing jsonl data
 def read_jsonl(filename_jsonl):
     try:
@@ -31,11 +39,12 @@ def read_jsonl(filename_jsonl):
                 data.append(json.loads(line))
         return data
     except FileNotFoundError:
-        return None
+        print("\nTemporaly file not found.")
+        return False
 
 # For saving embeddings to a specified file. 
 # clear_file: {True: Clears existing data and overwrites it, False: Appends new data after the existing data.}
-def record_embeddings(data_set, embedding_column_name, identifier_column, clear_file, output_file_name = './data/temp.jsonl'):
+def record_embeddings(data_set, embedding_column_name, identifier_column, clear_file, output_file_name = default_temp_file):
     if clear_file:
         # Open the file in write mode to create it or clear it if it already exists
         with open(output_file_name, 'w', encoding='utf-8') as json_file:
@@ -68,7 +77,7 @@ def record_embeddings(data_set, embedding_column_name, identifier_column, clear_
             counter += 1
 
 # For saving Vector and meta data in online vectorDB(s)
-def vectordb(filename_json = './data/temp.jsonl'):
+def vectordb(filename_json = default_temp_file):
     # For Pinecone
     index_name = input("\nEnter the Pinecone Index name: ")
     dimension = 1536
@@ -150,7 +159,7 @@ def flatten_json(any_json, delimiter='_'):
 
 
 # Check diff between two files
-def find_diff(dataset_new, dataset_old, identifier_column, output_file_name = './data/temp.jsonl'):
+def find_diff(dataset_new, dataset_old, identifier_column, output_file_name = default_temp_file):
     # Find common and different ReportIDs
     dataset_new_ids = {row[identifier_column] for row in dataset_new}
     dataset_old_ids = {row[identifier_column] for row in dataset_old}
@@ -238,8 +247,12 @@ def extract_inputfile(ammend):
 
                             # To pickup diff data if ammend is true.
                             if ammend:
+                                # Check if default temp. file is exsits
+                                if not os.path.exists(default_temp_file):
+                                    print("\nTemporaly file not found. Please try again with option 1.")
+                                    return False
                                 csv_data = list(reader)
-                                jsonl_data = read_jsonl('./data/temp.jsonl')
+                                jsonl_data = read_jsonl(default_temp_file)
                                 reader = find_diff(csv_data, jsonl_data, identifier_column)
                                 clear_file=False
 
