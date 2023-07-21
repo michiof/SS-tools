@@ -138,27 +138,6 @@ def vectordb(filename_json = default_temp_file):
         print(f"\nFailed to initiate Pinecone index or other error occurred: {e}\n\nPlease select Option 2 to resume it.")
         return False
 
-
-## Flattens a nested json file. (For future use)
-def flatten_json(any_json, delimiter='_'):
-    flat_json = {}
-
-    def flatten(x, name=''):
-        if type(x) is dict:
-            for a in x:
-                flatten(x[a], name + a + delimiter)
-        elif type(x) is list:
-            i = 0
-            for a in x:
-                flatten(a, name + str(i) + delimiter)
-                i += 1
-        else:
-            flat_json[name[:-1]] = x
-
-    flatten(any_json)
-    return flat_json
-
-
 # Check difference between two files
 def find_diff(dataset_new, dataset_old, identifier_column, output_file_name = default_temp_file):
     # Find common and different ReportIDs
