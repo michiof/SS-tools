@@ -148,7 +148,7 @@ def find_diff(dataset_new, dataset_old, identifier_column, output_file_name = de
     # Initiate a list to hold missing data
     missing_data = []
 
-    # Check if data in all keys are completely the same as the data_old
+    # Check if data in all keys are completely same as the data_old
     if len(common_ids) > 0:
         # Initiate a list to hold unmatched (data) IDs
         unmatched_ids = []
